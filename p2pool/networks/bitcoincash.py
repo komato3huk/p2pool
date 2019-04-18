@@ -12,14 +12,22 @@ CHAIN_LENGTH = 3*24*60 # shares -- three days
 REAL_CHAIN_LENGTH = 3*24*60 # shares -- three days
 TARGET_LOOKBEHIND = 200 # shares
 SPREAD = 3 # blocks
-IDENTIFIER = 'b826c0a51ddc2d2b'.decode('hex')
-PREFIX = 'ac9a8fda9a911bce'.decode('hex')
+IDENTIFIER = bytes.fromhex('b826c0a51ddc2d2b')
+PREFIX = bytes.fromhex('ac9a8fda9a911bce')
 P2P_PORT = 9349
 MIN_TARGET = 0
 MAX_TARGET = 2**256//2**32 - 1
 PERSIST = True # Set to False for solo mining or starting a new chain
 WORKER_PORT = 9348
-BOOTSTRAP_ADDRS = 'ml.toom.im woff.toom.im crypto.office-on-the.net siberia.mine.nu'.split(' ') # fixme, need more seed nodes
+BOOTSTRAP_ADDRS = [
+        'ml.toom.im',
+        'bch.p2pool.leblancnet.us',
+        'siberia.mine.nu',
+        '5.8.79.155',
+        '18.209.181.17',
+        '95.79.35.133',
+        '193.29.58.47',
+        ]
 ANNOUNCE_CHANNEL = '#p2pool'
 VERSION_CHECK = lambda v: None if 100000 <= v else 'Bitcoin version too old. Upgrade to 0.11.2 or newer!' # not a bug. BIP65 support is ensured by SOFTFORKS_REQUIRED
 VERSION_WARNING = lambda v: None
