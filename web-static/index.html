@@ -110,12 +110,7 @@
             });
             
             d3.json('../web/best_share_hash', function(c) {
-		if (c !== null) {
-                	d3.select('#best_share').append('a').attr(
-				'href', 'share.html#' + c).text(c.substr(-8));
-		} else {
-                	d3.select('#best_share').append('span').text('None');
-		}
+                d3.select('#best_share').append('a').attr('href', 'share.html#' + c).text(c.substr(-8));
             });
             
             function fill(url, id) {

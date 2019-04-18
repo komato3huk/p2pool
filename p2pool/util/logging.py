@@ -6,33 +6,24 @@ import sys
 from twisted.python import log
 
 class EncodeReplacerPipe(object):
-
-    __slots__ = ('inner_file', 'softspace')
-
     def __init__(self, inner_file):
         self.inner_file = inner_file
         self.softspace = 0
-
     def write(self, data):
-        if isinstance(data, bytes):
+        if isinstance(data, unicode):
             try:
                 data = data.encode(self.inner_file.encoding, 'replace')
             except:
                 data = data.encode('ascii', 'replace')
         self.inner_file.write(data)
-
     def flush(self):
         self.inner_file.flush()
 
 class LogFile(object):
-
-    __slots__ = ('filename', 'inner_file')
-
     def __init__(self, filename):
         self.filename = filename
         self.inner_file = None
         self.reopen()
-
     def reopen(self):
         if self.inner_file is not None:
             self.inner_file.close()
@@ -51,37 +42,26 @@ class LogFile(object):
             f.write(data)
         f.close()
         self.inner_file = codecs.open(self.filename, 'a', 'utf-8')
-
     def write(self, data):
         self.inner_file.write(data)
-
     def flush(self):
         self.inner_file.flush()
 
 class TeePipe(object):
-
-    __slots__ = ('outputs')
-
     def __init__(self, outputs):
         self.outputs = outputs
-
     def write(self, data):
         for output in self.outputs:
             output.write(data)
-
     def flush(self):
         for output in self.outputs:
             output.flush()
 
 class TimestampingPipe(object):
-
-    __slots__ = ('inner_file', 'buf', 'softspace')
-
     def __init__(self, inner_file):
         self.inner_file = inner_file
         self.buf = ''
         self.softspace = 0
-
     def write(self, data):
         buf = self.buf + data
         lines = buf.split('\n')
@@ -89,18 +69,13 @@ class TimestampingPipe(object):
             self.inner_file.write('%s %s\n' % (datetime.datetime.now(), line))
             self.inner_file.flush()
         self.buf = lines[-1]
-
     def flush(self):
         pass
 
 class AbortPipe(object):
-
-    __slots__ = ('inner_file', 'softspace')
-
     def __init__(self, inner_file):
         self.inner_file = inner_file
         self.softspace = 0
-
     def write(self, data):
         try:
             self.inner_file.write(data)
@@ -108,20 +83,15 @@ class AbortPipe(object):
             sys.stdout = sys.__stdout__
             log.DefaultObserver.stderr = sys.stderr = sys.__stderr__
             raise
-
     def flush(self):
         self.inner_file.flush()
 
 class PrefixPipe(object):
-
-    __slots__ = ('inner_file', 'prefix', 'buf', 'softspace')
-
     def __init__(self, inner_file, prefix):
         self.inner_file = inner_file
         self.prefix = prefix
         self.buf = ''
         self.softspace = 0
-
     def write(self, data):
         buf = self.buf + data
         lines = buf.split('\n')
@@ -129,6 +99,5 @@ class PrefixPipe(object):
             self.inner_file.write(self.prefix + line + '\n')
             self.inner_file.flush()
         self.buf = lines[-1]
-
     def flush(self):
         pass
