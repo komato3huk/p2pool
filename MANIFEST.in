@@ -1,4 +1,0 @@
-include README.md
-include VERSION
-include p2pool/pow/*
-include web-static/*

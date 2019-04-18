@@ -1,6 +1,5 @@
 import os
 import platform
-from importlib import import_module
 
 from twisted.internet import defer
 
@@ -8,11 +7,9 @@ from .. import data, helper
 from p2pool.util import pack
 
 
-P2P_PREFIX = bytes.fromhex('fbc0b6db')
+P2P_PREFIX = 'fbc0b6db'.decode('hex')
 P2P_PORT = 9333
 ADDRESS_VERSION = 48
-ADDRESS_P2SH_VERSION = 50
-HUMAN_READABLE_PART = b'ltc'
 RPC_PORT = 9332
 RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
 #            'litecoin' in (yield bitcoind.rpc_help()) and # new versions have "litecoinprivkey" but no "litecoinaddress"
@@ -20,8 +17,7 @@ RPC_CHECK = defer.inlineCallbacks(lambda bitcoind: defer.returnValue(
                           (yield bitcoind.rpc_getblockchaininfo())['chain'] == 'main'
         ))
 SUBSIDY_FUNC = lambda height: 50*100000000 >> (height + 1)//840000
-POW_FUNC = lambda data: pack.IntType(256).unpack(import_module(
-                'p2pool.pow.ltc_scrypt').getPoWHash(data))
+POW_FUNC = lambda data: pack.IntType(256).unpack(__import__('ltc_scrypt').getPoWHash(data))
 BLOCK_PERIOD = 150 # s
 SYMBOL = 'LTC'
 CONF_FILE_FUNC = lambda: os.path.join(os.path.join(os.environ['APPDATA'], 'Litecoin') if platform.system() == 'Windows' else os.path.expanduser('~/Library/Application Support/Litecoin/') if platform.system() == 'Darwin' else os.path.expanduser('~/.litecoin'), 'litecoin.conf')

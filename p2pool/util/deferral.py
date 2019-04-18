@@ -1,7 +1,8 @@
+from __future__ import division
+
 import itertools
 import random
 import sys
-from functools import wraps
 
 from twisted.internet import defer, reactor
 from twisted.python import failure, log
@@ -22,9 +23,6 @@ def run_repeatedly(f, *args, **kwargs):
     return stop
 
 class RetrySilentlyException(Exception):
-
-    __slots__ = ()
-
     pass
 
 def retry(message='Error:', delay=3, max_retries=None, traceback=True):
@@ -34,25 +32,21 @@ def retry(message='Error:', delay=3, max_retries=None, traceback=True):
     def get_block(hash):
         ...
     '''
-
+    
     def retry2(func):
         @defer.inlineCallbacks
-        @wraps(func)
         def f(*args, **kwargs):
             for i in itertools.count():
                 try:
                     result = yield func(*args, **kwargs)
-                except Exception as e:
+                except Exception, e:
                     if i == max_retries:
                         raise
                     if not isinstance(e, RetrySilentlyException):
-                        cmsg = '%s\n<%s.%s> %s: %s' % (message,
-                                func.__module__, func.__name__,
-                                type(e).__name__, e)
                         if traceback:
-                            log.err(None, cmsg)
+                            log.err(None, message)
                         else:
-                            print(cmsg, file=sys.stderr)
+                            print >>sys.stderr, message, e
                     yield sleep(delay)
                 else:
                     defer.returnValue(result)
@@ -63,14 +57,12 @@ class ReplyMatcher(object):
     '''
     Converts request/got response interface to deferred interface
     '''
-
-    __slots__ = ('func', 'timeout', 'map')
-
+    
     def __init__(self, func, timeout=5):
         self.func = func
         self.timeout = timeout
         self.map = {}
-
+    
     def __call__(self, id):
         if id not in self.map:
             self.func(id)
@@ -83,7 +75,7 @@ class ReplyMatcher(object):
         timer = reactor.callLater(self.timeout, timeout)
         self.map.setdefault(id, set()).add((df, timer))
         return df
-
+    
     def got_response(self, id, resp):
         if id not in self.map:
             return
@@ -95,16 +87,14 @@ class GenericDeferrer(object):
     '''
     Converts query with identifier/got response interface to deferred interface
     '''
-
-    __slots__ = ('max_id', 'func', 'timeout', 'on_timeout', 'map')
-
+    
     def __init__(self, max_id, func, timeout=5, on_timeout=lambda: None):
         self.max_id = max_id
         self.func = func
         self.timeout = timeout
         self.on_timeout = on_timeout
         self.map = {}
-
+    
     def __call__(self, *args, **kwargs):
         while True:
             id = random.randrange(self.max_id)
@@ -125,14 +115,14 @@ class GenericDeferrer(object):
         self.map[id] = df, timer
         self.func(id, *args, **kwargs)
         return df
-
+    
     def got_response(self, id, resp):
         if id not in self.map:
             return
         df, timer = self.map.pop(id)
         timer.cancel()
         df.callback(resp)
-
+    
     def respond_all(self, resp):
         while self.map:
             id, (df, timer) = self.map.popitem()
@@ -140,44 +130,40 @@ class GenericDeferrer(object):
             df.errback(resp)
 
 class NotNowError(Exception):
-    __slots__ = ()
-
     pass
 
 class DeferredCacher(object):
     '''
     like memoize, but for functions that return Deferreds
-
+    
     @DeferredCacher
     def f(x):
         ...
         return df
-
+    
     @DeferredCacher.with_backing(bsddb.hashopen(...))
     def f(x):
         ...
         return df
     '''
-
-    __slots__ = ('func', 'backing', 'waiting')
-
+    
     @classmethod
     def with_backing(cls, backing):
         return lambda func: cls(func, backing)
-
+    
     def __init__(self, func, backing=None):
         if backing is None:
             backing = {}
-
+        
         self.func = func
         self.backing = backing
         self.waiting = {}
-
+    
     @defer.inlineCallbacks
     def __call__(self, key):
         if key in self.waiting:
             yield self.waiting[key]
-
+        
         if key in self.backing:
             defer.returnValue(self.backing[key])
         else:
@@ -186,10 +172,10 @@ class DeferredCacher(object):
                 value = yield self.func(key)
             finally:
                 self.waiting.pop(key).callback(None)
-
+        
         self.backing[key] = value
         defer.returnValue(value)
-
+    
     _nothing = object()
     def call_now(self, key, default=_nothing):
         if key in self.backing:
@@ -203,10 +189,10 @@ class DeferredCacher(object):
                 self.waiting.pop(key).callback(None)
                 if fail.check(RetrySilentlyException):
                     return
-                print()
-                print('Error when requesting noncached value:')
+                print
+                print 'Error when requesting noncached value:'
                 fail.printTraceback()
-                print()
+                print
             self.func(key).addCallback(cb).addErrback(eb)
         if default is not self._nothing:
             return default
@@ -225,7 +211,6 @@ def deferred_has_been_called(df):
     if res2:
         return True, res2[0]
     return False, None
-
 def inlineCallbacks(f):
     from functools import wraps
     @wraps(f)
@@ -243,8 +228,7 @@ def inlineCallbacks(f):
             while True:
                 try:
                     if isinstance(cur, failure.Failure):
-                        # external code is run here
-                        res = cur.throwExceptionIntoGenerator(gen)
+                        res = cur.throwExceptionIntoGenerator(gen) # external code is run here
                     else:
                         res = gen.send(cur) # external code is run here
                     if stop_running[0]:
@@ -270,8 +254,7 @@ def inlineCallbacks(f):
                                 if stop_running[0]:
                                     return
                                 it(res2)
-                            # external code is run between this and gotResult
-                            res.addBoth(gotResult)
+                            res.addBoth(gotResult) # external code is run between this and gotResult
                     else:
                         cur = res
                         continue
@@ -280,21 +263,19 @@ def inlineCallbacks(f):
         return df
     return _
 
+
+
 class RobustLoopingCall(object):
-
-    __slots__ = ('func', 'args', 'kwargs', 'running', '_df')
-
     def __init__(self, func, *args, **kwargs):
         self.func, self.args, self.kwargs = func, args, kwargs
-
+        
         self.running = False
-
+    
     def start(self, period):
         assert not self.running
         self.running = True
-        self._df = self._worker(period).addErrback(
-                lambda fail: fail.trap(defer.CancelledError))
-
+        self._df = self._worker(period).addErrback(lambda fail: fail.trap(defer.CancelledError))
+    
     @inlineCallbacks
     def _worker(self, period):
         assert self.running
@@ -304,7 +285,7 @@ class RobustLoopingCall(object):
             except:
                 log.err()
             yield sleep(period)
-
+    
     def stop(self):
         assert self.running
         self.running = False
